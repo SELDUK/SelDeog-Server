@@ -18,6 +18,8 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
+
+console.log("SelDuk Server 시작");
 app.use('/', indexRouter);
 
 // catch 404 and forward to error handler
