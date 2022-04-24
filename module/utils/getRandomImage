@@ -1,0 +1,27 @@
+const db = require('../../module/pool');
+
+const getRandomImage = async (table, level) => {
+    let query;
+
+    if(level == null){
+        query = `
+        SELECT chr${table}Idx as idx, chr${table}Img as image
+        FROM Chr${table}
+        ORDER BY RAND() LIMIT 1
+        `;
+    } else {
+        query = `
+        SELECT chr${table}Idx as idx, chr${table}Img as image
+        FROM Chr${table}
+        WHERE chr${table}Lv = ${level}
+        ORDER BY RAND() LIMIT 1
+        `;
+    }
+
+    //Query Result
+    const result = await db.queryParam_None(query); 
+
+    return result[0];
+};  
+
+module.exports = getRandomImage;

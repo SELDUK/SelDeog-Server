@@ -13,21 +13,21 @@ const db = require('../../module/pool');
 회원가입
 METHOD       : POST
 URL          : /auth/signup
-BODY         : email = 회원가입 이메일
+BODY         : id = 회원가입 아이디
                password = 회원가입 패스워드
 */
 
 router.post('/', async(req, res) => {
-    const signupQuery = 'INSERT INTO User (email, password, salt) VALUES (?, ?, ?)';
+    const signupQuery = 'INSERT INTO Usr (usrId, usrPwd, usrSalt) VALUES (?, ?, ?)';
 
     const buf = await crypto.randomBytes(64);
     const salt = buf.toString('base64');
     const hashedPw = await crypto.pbkdf2(req.body.password.toString(), salt, 1000, 32, 'SHA512');
-    const signupResult = await db.queryParam_Arr(signupQuery, [req.body.email, hashedPw.toString('base64'), salt]);
+    const signupResult = await db.queryParam_Arr(signupQuery, [req.body.id, hashedPw.toString('base64'), salt]);
 
-    if (!signupResult) {
-        res.status(200).send(defaultRes.successFalse(statusCode.OK, resMessage.FAIL_SIGNUP));
-    } else { //쿼리문이 성공했을 때
+    if (Object.keys(signupResult).length == 0) {
+        res.status(500).send(defaultRes.successFalse(statusCode.INTERNAL_SERVER_ERROR, resMessage.FAIL_SIGNUP));
+    } else { 
         res.status(200).send(defaultRes.successTrue(statusCode.OK, resMessage.SUCCESS_SIGNUP));
     }
 });
@@ -35,20 +35,18 @@ router.post('/', async(req, res) => {
 /*
 이메일 중복체크
 METHOD       : GET
-URL          : /auth/signup/check?email={email}
-PARAMETER    : email = 이메일
+URL          : /auth/signup/check?id={id}
+PARAMETER    : id = 아이디
 */
 
 router.get('/check', async(req,res) =>{
-    const checkidQuery = 'SELECT * FROM User WHERE email = ?';
-    const checkidResult = await db.queryParam_Parse(checkidQuery, [req.query.email]);
+    const checkidQuery = 'SELECT * FROM Usr WHERE usrId = ?';
+    const checkidResult = await db.queryParam_Parse(checkidQuery, [req.query.id]);
     
-    if (checkidResult[0] == null) {
-        console.log("이메일 사용 가능");
-        res.status(200).send(defaultRes.successTrue(statusCode.OK, resMessage.USABLE_EMAIL));
+    if (checkidResult.length == 0) {
+        res.status(200).send(defaultRes.successTrue(statusCode.OK, resMessage.USABLE_ID));
     } else {
-        console.log("이미 존재하는 이메일");
-        res.status(200).send(defaultRes.successFalse(statusCode.OK, resMessage.ALREADY_EXIST_EMAIL));
+        res.status(200).send(defaultRes.successFalse(statusCode.OK, resMessage.ALREADY_EXIST_ID));
     }
 });
 

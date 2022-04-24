@@ -5,7 +5,8 @@ const secretKey = require('../config/secretKey');
 module.exports = {
     sign: (user) => {
         const payload = {
-            userIdx: user.userIdx,
+            usrIdx: user.usrIdx,
+            usrEml: user.usrEml,
         };
 
         const encodedToken = {

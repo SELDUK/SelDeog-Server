@@ -15,37 +15,33 @@ const jwtUtils = require('../../module/jwt');
 로그인
 METHOD       : POST
 URL          : /auth/login
-BODY         : email = 이메일
+BODY         : id = 아이디
                password = 패스워드
 */
 
 router.post('/', async(req, res) => {
-    const loginQuery = 'SELECT * FROM User WHERE email = ?';
-    const loginResult = await db.queryParam_Parse(loginQuery, [req.body.email]);
+    const loginQuery = 'SELECT * FROM Usr WHERE usrId = ?';
+    const loginResult = await db.queryParam_Arr(loginQuery, [req.body.id]);
 
-    //이메일 존재X
-    if(loginResult[0] == null){
-        console.log("이메일이 존재하지 않습니다.");
-        res.status(200).send(defaultRes.successFalse(statusCode.OK, resMessage.NOT_EXIST_EMAIL));
+    //아이디 존재X
+    if(loginResult.length == 0){
+        res.status(200).send(defaultRes.successFalse(statusCode.OK, resMessage.NOT_EXIST_ID));
     }
-    //이메일 존재 => 비밀번호 일치 검사
+    //아이디 존재 => 비밀번호 일치 검사
     else {
-        console.log("이메일이 존재합니다.");
-        const salt = loginResult[0].salt;
+        const salt = loginResult[0].usrSalt;
         crypto.pbkdf2(req.body.password.toString(), salt, 1000, 32, 'SHA512', (err, key) => {
             const hashedEnterPw = key.toString('base64');
             
-            const canLogin = (loginResult[0].password == hashedEnterPw) ? true : false;
+            const canLogin = (loginResult[0].usrPwd == hashedEnterPw) ? true : false;
 
             //비밀번호 일치
             if(canLogin){
                 const token = jwtUtils.sign(loginResult[0]);
-                console.log("로그인 성공.");
                 res.status(200).send(defaultRes.successTrue(statusCode.OK, resMessage.SUCCESS_LOGIN, token));
             }
             //비밀번호 불일치
             else {
-                console.log("비밀번호가 일치하지 않습니다.");
                 res.status(200).send(defaultRes.successFalse(statusCode.OK, resMessage.NOT_CORRECT_PASSWORD));
             }
         });
