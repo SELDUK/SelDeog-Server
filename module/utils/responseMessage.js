@@ -16,7 +16,8 @@ module.exports = {
 
     //로그인
     NOT_EXIST_ID: "존재하지 않는 아이디입니다",
-    SUCCESS_LOGIN: "로그인 성공",
+    SUCCESS_LOGIN_NOT_MADE_USER_DETAIL: "로그인 성공, 사용자 상세정보를 생성해야합니다",
+    SUCCESS_LOGIN_ALREADY_MADE_USER_DETAIL: "로그인 성공",
     NOT_CORRECT_PASSWORD: "비밀번호가 일치하지 않습니다",
 
     //사용자 상세정보
@@ -26,6 +27,7 @@ module.exports = {
 
     //달력
     SUCCESS_GET_CALENDAR: "사용자 달력 조회 성공",
+    SUCCESS_GET_CALENDAR_BUTTON: "사용자 달력 버튼 조회 성공",
 
     //사용자 캐릭터 생성
     FAIL_CREATE_CHARACTER: "사용자 캐릭터 생성 실패",
@@ -61,4 +63,8 @@ module.exports = {
     SUCCESS_REGISTER_CHARACTER_BACKGROUND: "캐릭터 배경 등록 성공",
     FAIL_REGISTER_CHARACTER_CHEEK: "캐릭터 연지곤지 등록 실패",
     SUCCESS_REGISTER_CHARACTER_CHEEK: "캐릭터 연지곤지 등록 성공",
+
+    //DUMMY 캐릭터 및 칭찬 관련
+    SUCCESS_REGISTER_DUMMY_CHARACTER: "DUMMY 캐릭터 등록 성공",
+    SUCCESS_REGISTER_DUMMY_COMMENT: "DUMMY 칭찬 등록 성공",
 };

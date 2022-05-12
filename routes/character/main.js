@@ -27,7 +27,7 @@ router.get('/', authUtil, async(req, res) => {
     let resData = {};
 
     const selectUsrChrQuery = `
-    SELECT usrChrIdx, usrChrImg
+    SELECT usrChrIdx, usrChrImg, usrChrLv
     FROM UsrChr
     WHERE usrIdx = ? AND usrChrDateCrt = ?
     `;
@@ -55,11 +55,13 @@ router.get('/', authUtil, async(req, res) => {
         const usrChrIdx = selectUsrChrResult[0].usrChrIdx;
         const usrChrImg = selectUsrChrResult[0].usrChrImg;
         const usrChrName = selectUsrDtlResult[0].usrChrName;
+        const usrChrLv = selectUsrChrResult[0].usrChrLv;
 
         resData.usrChrIdx = usrChrIdx;
         resData.usrChrImg = usrChrImg;
         resData.usrChrName = usrChrName;
         resData.usrChrDateCrt = usrChrDateCrt;
+        resData.usrChrCheck = usrChrLv >= 4 ? true : false;
     
         /* 2. UsrChrCmt JOIN UsrChrCmtTag 테이블에서  칭찬, 태그 SELECT */
         const selectUsrChrCmtQuery = `
@@ -133,7 +135,7 @@ router.get('/:usrChrIdx', authUtil, async(req, res) => {
     /* 1. UsrChr 테이블에서 usrChrImg, usrChrDateCrt SELECT
           UstDtl 테이블에서 usrChrName SELECT */
     const selectUsrChrQuery = `
-    SELECT usrChrImg, usrChrDateCrt
+    SELECT usrChrImg, usrChrDateCrt, usrChrLv
     FROM UsrChr
     WHERE usrIdx = ? AND usrChrIdx = ?
     `;
@@ -160,11 +162,13 @@ router.get('/:usrChrIdx', authUtil, async(req, res) => {
         const usrChrImg = selectUsrChrResult[0].usrChrImg;
         const usrChrDateCrt = selectUsrChrResult[0].usrChrDateCrt;
         const usrChrName = selectUsrDtlResult[0].usrChrName;
+        const usrChrLv = selectUsrChrResult[0].usrChrLv;
 
         resData.usrChrIdx = usrChrIdx;
         resData.usrChrImg = usrChrImg;
         resData.usrChrName = usrChrName;
         resData.usrChrDateCrt = usrChrDateCrt;
+        resData.usrChrCheck = usrChrLv >= 4 ? true : false;
     
         /* 2. UsrChrCmt JOIN UsrChrCmtTag 테이블에서  칭찬, 태그 SELECT */
         const selectUsrChrCmtQuery = `
@@ -323,10 +327,16 @@ router.post('/', authUtil, async(req, res) => {
     const AWS_REGION = s3config.AWS_REGION;
     const AWS_Uploaded_File_URL_LINK = s3config.AWS_Uploaded_File_URL_LINK;
 
-    const today = new Date();   
+    const curr = new Date(); 
+    const utc = curr.getTime() + (curr.getTimezoneOffset() * 60 * 1000);
+    const KR_TIME_DIFF = 9 * 60 * 60 * 1000;
+    const today = new Date(utc + (KR_TIME_DIFF));
     const year = today.getFullYear(); // 년도
     const month = today.getMonth() + 1;  // 월
     const date = today.getDate();  // 날짜
+    const hours = today.getHours(); // 시
+    const minutes = today.getMinutes();  // 분
+    const seconds = today.getSeconds();  // 초
 
     const s3bucket = new AWS.S3({
         accessKeyId: AWS_ACCESS_KEY_ID,
@@ -344,7 +354,7 @@ router.post('/', authUtil, async(req, res) => {
 
     const paramsChrImg = {
         Bucket: AWS_BUCKET_NAME,
-        Key: usrIdx + '/' + year + '/' + month + '/' + date + '/' + 'chrImg',
+        Key: usrIdx + '/' + year + '/' + month + '/' + date + '/' + hours + '/' + minutes + '/' + seconds + '/' + 'chrImg',
         Body: chrImg,
         ContentType: 'png',
         ACL: 'public-read'
@@ -353,7 +363,7 @@ router.post('/', authUtil, async(req, res) => {
     s3bucket.upload(paramsChrBaseImg, async(err, data1) => {
         s3bucket.upload(paramsChrImg, async(err, data2) => {
             const usrChrBaseImg = AWS_Uploaded_File_URL_LINK + '/' + usrIdx + '/' + year + '/' + month + '/' + date + '/' + 'chrBaseImg';
-            const usrChrImg = AWS_Uploaded_File_URL_LINK + '/' + usrIdx + '/' + year + '/' + month + '/' + date + '/' + 'chrImg';
+            const usrChrImg = AWS_Uploaded_File_URL_LINK + '/' + usrIdx + '/' + year + '/' + month + '/' + date + '/' + hours + '/' + minutes + '/' + seconds + '/' + 'chrImg';
             /* 6. 캐릭터 삽입 */
             //UsrChr 테이블에 INSERT
             const insertUsrChrQuery = `
@@ -368,7 +378,7 @@ router.post('/', authUtil, async(req, res) => {
             /* 7. UsrDtl테이블 usrChrLastCrt 업데이트 */
             const updateUsrDtlQuery = `
             UPDATE UsrDtl
-            SET usrChrLasrCrt = ?
+            SET usrChrLastCrt = ?
             WHERE usrIdx = ?
             `;
             
@@ -433,7 +443,7 @@ router.post('/:usrChrIdx/comment', authUtil, async(req, res) => {
 
     /* 3. UsrChr 테이블에서 usrChrLv(+1), usrChrBaseImg, ... 찾기 */
     const selectUsrChrQuery = `
-    SELECT usrChrLv, usrChrBaseImg, usrChrChkIdx, usrChrExpFirIdx, usrChrExpSecIdx, usrChrBgIdx
+    SELECT usrChrLv, usrChrBaseImg, usrChrChkIdx, usrChrExpFirIdx, usrChrExpSecIdx, usrChrBgIdx, usrChrDateCrt
     FROM UsrChr
     WHERE usrChrIdx = ?
     `;
@@ -645,10 +655,18 @@ router.post('/:usrChrIdx/comment', authUtil, async(req, res) => {
             const AWS_REGION = s3config.AWS_REGION;
             const AWS_Uploaded_File_URL_LINK = s3config.AWS_Uploaded_File_URL_LINK;
         
-            const today = new Date();   
-            const year = today.getFullYear(); // 년도
-            const month = today.getMonth() + 1;  // 월
-            const date = today.getDate();  // 날짜
+            const today = selectUsrChrResult[0].usrChrDateCrt;
+            const year = today.substr(0, 4); // 년도
+            const month = today.substr(5, 2) * 1;  // 월
+            const date = today.substr(8, 2) * 1;  // 날짜
+
+            const curr = new Date(); 
+            const utc = curr.getTime() + (curr.getTimezoneOffset() * 60 * 1000);
+            const KR_TIME_DIFF = 9 * 60 * 60 * 1000;
+            const dayTime = new Date(utc + (KR_TIME_DIFF));
+            const hours = dayTime.getHours(); // 시
+            const minutes = dayTime.getMinutes();  // 분
+            const seconds = dayTime.getSeconds();  // 초
         
             const s3bucket = new AWS.S3({
                 accessKeyId: AWS_ACCESS_KEY_ID,
@@ -658,7 +676,7 @@ router.post('/:usrChrIdx/comment', authUtil, async(req, res) => {
         
             const paramsChrImg = {
                 Bucket: AWS_BUCKET_NAME,
-                Key: usrIdx + '/' + year + '/' + month + '/' + date + '/' + 'chrImg',
+                Key: usrIdx + '/' + year + '/' + month + '/' + date + '/' + hours + '/' + minutes + '/' + seconds + '/' + 'chrImg',
                 Body: chrImg,
                 ContentType: 'png',
                 ACL: 'public-read'
@@ -673,7 +691,7 @@ router.post('/:usrChrIdx/comment', authUtil, async(req, res) => {
                 `;
         
                 //Query Value
-                const usrChrImg = AWS_Uploaded_File_URL_LINK + '/' + usrIdx + '/' + year + '/' + month + '/' + date + '/' + 'chrImg';
+                const usrChrImg = AWS_Uploaded_File_URL_LINK + '/' + usrIdx + '/' + year + '/' + month + '/' + date + '/' + hours + '/' + minutes + '/' + seconds + '/' + 'chrImg';
             
                 //Query Result  
                 const updateUsrChrResult = await db.queryParam_Arr(updateUsrChrQuery, [usrChrImg, usrChrChkIdx, usrChrExpFirIdx, usrChrExpSecIdx, usrChrBgIdx, usrChrIdx]);
@@ -768,7 +786,7 @@ router.delete('/:usrChrIdx/comment', authUtil, async(req, res) => {
 
     /* 2. UsrChr 테이블에서 usrChrLv(-1), usrChrBaseImg 찾기 */
     const selectUsrChrQuery = `
-    SELECT usrChrLv, usrChrBaseImg, usrChrChkIdx, usrChrExpFirIdx, usrChrExpSecIdx, usrChrBgIdx
+    SELECT usrChrLv, usrChrBaseImg, usrChrChkIdx, usrChrExpFirIdx, usrChrExpSecIdx, usrChrBgIdx, usrChrDateCrt
     FROM UsrChr
     WHERE usrChrIdx = ?
     `;
@@ -945,10 +963,18 @@ router.delete('/:usrChrIdx/comment', authUtil, async(req, res) => {
             const AWS_REGION = s3config.AWS_REGION;
             const AWS_Uploaded_File_URL_LINK = s3config.AWS_Uploaded_File_URL_LINK;
 
-            const today = new Date();   
-            const year = today.getFullYear(); // 년도
-            const month = today.getMonth() + 1;  // 월
-            const date = today.getDate();  // 날짜
+            const today = selectUsrChrResult[0].usrChrDateCrt;
+            const year = today.substr(0, 4); // 년도
+            const month = today.substr(5, 2) * 1;  // 월
+            const date = today.substr(8, 2) * 1;  // 날짜
+
+            const curr = new Date(); 
+            const utc = curr.getTime() + (curr.getTimezoneOffset() * 60 * 1000);
+            const KR_TIME_DIFF = 9 * 60 * 60 * 1000;
+            const dayTime = new Date(utc + (KR_TIME_DIFF));
+            const hours = dayTime.getHours(); // 시
+            const minutes = dayTime.getMinutes();  // 분
+            const seconds = dayTime.getSeconds();  // 초
 
             const s3bucket = new AWS.S3({
                 accessKeyId: AWS_ACCESS_KEY_ID,
@@ -958,7 +984,7 @@ router.delete('/:usrChrIdx/comment', authUtil, async(req, res) => {
 
             const paramsChrImg = {
                 Bucket: AWS_BUCKET_NAME,
-                Key: usrIdx + '/' + year + '/' + month + '/' + date + '/' + 'chrImg',
+                Key: usrIdx + '/' + year + '/' + month + '/' + date + '/' + hours + '/' + minutes + '/' + seconds + '/' + 'chrImg',
                 Body: chrImg,
                 ContentType: 'png',
                 ACL: 'public-read'
@@ -973,7 +999,7 @@ router.delete('/:usrChrIdx/comment', authUtil, async(req, res) => {
                 `;
 
                 //Query Value
-                const usrChrImg = AWS_Uploaded_File_URL_LINK + '/' + usrIdx + '/' + year + '/' + month + '/' + date + '/' + 'chrImg';
+                const usrChrImg = AWS_Uploaded_File_URL_LINK + '/' + usrIdx + '/' + year + '/' + month + '/' + date + '/' + hours + '/' + minutes + '/' + seconds + '/' + 'chrImg';
             
                 //Query Result  
                 const updateUsrChrResult = await db.queryParam_Arr(updateUsrChrQuery, [usrChrImg, usrChrIdx]);

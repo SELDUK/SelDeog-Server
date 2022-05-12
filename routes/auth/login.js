@@ -30,7 +30,7 @@ router.post('/', async(req, res) => {
     //아이디 존재 => 비밀번호 일치 검사
     else {
         const salt = loginResult[0].usrSalt;
-        crypto.pbkdf2(req.body.password.toString(), salt, 1000, 32, 'SHA512', (err, key) => {
+        crypto.pbkdf2(req.body.password.toString(), salt, 1000, 32, 'SHA512', async (err, key) => {
             const hashedEnterPw = key.toString('base64');
             
             const canLogin = (loginResult[0].usrPwd == hashedEnterPw) ? true : false;
@@ -38,7 +38,18 @@ router.post('/', async(req, res) => {
             //비밀번호 일치
             if(canLogin){
                 const token = jwtUtils.sign(loginResult[0]);
-                res.status(200).send(defaultRes.successTrue(statusCode.OK, resMessage.SUCCESS_LOGIN, token));
+
+                const selectUsrDtlQuery = 'SELECT * FROM UsrDtl WHERE usrIdx = ?';
+                const usrIdx = loginResult[0].usrIdx;
+                const selectUsrDtlResult = await db.queryParam_Arr(selectUsrDtlQuery, [usrIdx]);
+            
+                //사용자 상세정보를 만들지 않은 사용자일 경우
+                if (selectUsrDtlResult.length == 0){
+                    res.status(210).json(defaultRes.successTrue(210, resMessage.SUCCESS_LOGIN_NOT_MADE_USER_DETAIL, token));
+                }
+                else {
+                    res.status(211).send(defaultRes.successTrue(211, resMessage.SUCCESS_LOGIN_ALREADY_MADE_USER_DETAIL, token));
+                }
             }
             //비밀번호 불일치
             else {

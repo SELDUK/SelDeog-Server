@@ -71,7 +71,7 @@ router.post('/', authUtil, async(req, res) => {
     const selectChrExpQuery = `
     SELECT chrExpImg
     FROM ChrExp
-    WHERE chrExpLv = 0
+    WHERE chrExpLv = 3
     `;
 
     //Query Result

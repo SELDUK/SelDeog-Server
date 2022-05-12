@@ -7,7 +7,6 @@ const resMessage = require('../../module/utils/responseMessage');
 
 const db = require('../../module/pool');
 const authUtil = require('../../module/utils/authUtil');
-const hasMadeUserDetail = require('../../module/utils/hasMadeUserDetail');
 
 /*
 달력 조회
@@ -17,7 +16,7 @@ PARAMETER    : date = 해당 년, 월
 HEADERS      : token = 사용자 토큰
 */
 
-router.get('/', authUtil, hasMadeUserDetail, async(req, res) => {
+router.get('/', authUtil, async(req, res) => {
 
     let resData = {};
     let usrChrImgs = [];
@@ -42,6 +41,30 @@ router.get('/', authUtil, hasMadeUserDetail, async(req, res) => {
     resData.usrChrImgs = usrChrImgs;
 
     res.status(200).send(defaultRes.successTrue(statusCode.OK, resMessage.SUCCESS_GET_CALENDAR, resData));
+});
+
+/*
+달력 버튼 조회
+METHOD       : GET
+URL          : /calendar/button       
+HEADERS      : token = 사용자 토큰
+*/
+
+router.get('/button', authUtil, async(req, res) => {
+
+    const selectUsrDtlQuery = `
+    SELECT usrChrImgDft
+    FROM UsrDtl 
+    WHERE usrIdx = ? 
+    `;
+
+    //Query Value
+    const usrIdx = req.decoded.usrIdx;
+
+    //Query Result
+    const selectUsrDtlResult = await db.queryParam_Arr(selectUsrDtlQuery, [usrIdx]);
+
+    res.status(200).send(defaultRes.successTrue(statusCode.OK, resMessage.SUCCESS_GET_CALENDAR_BUTTON, selectUsrDtlResult[0]));
 });
 
 module.exports = router;
